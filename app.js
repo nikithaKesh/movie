@@ -4,13 +4,14 @@
 const CONFIG = {
     API_KEY: '3fd2be6f0c70a2a598f084ddfb75487c', // Note: Move to .env/backend in production
     BASE_URL: 'https://api.themoviedb.org/3',
-    IMG_PATH: 'https://image.tmdb.org/t/p/w1280',
-    POSTER_PATH: 'https://image.tmdb.org/p/w500',
+    IMG_PATH: 'https://image.tmdb.org/t/p/w1280', // Fixed URL path
+    POSTER_PATH: 'https://image.tmdb.org/t/p/w500',
     DEFAULT_POSTER: 'https://via.placeholder.com/500x750?text=No+Image'
 };
 
 const app = {
     currentState: {
+        mediaType: 'movie', // NEW: Tracks if we are looking at 'movie' or 'tv'
         genre: '',
         year: '',
         rating: 0
@@ -52,8 +53,17 @@ const app = {
             el.addEventListener('change', () => this.applyFilters());
         });
 
-        // Debounced Search (Bonus Performance)
+        // Debounced Search
         this.search.addEventListener('input', this.debounce(() => this.handleSearch(), 500));
+    },
+
+    /**
+     * STATE MANAGEMENT (NEW)
+     */
+    setMediaType(type) {
+        this.currentState.mediaType = type;
+        this.loadGenres(); // Reload genres because TV and Movie genres have different IDs
+        this.loadCategory('trending'); // Reset view
     },
 
     /**
@@ -71,48 +81,67 @@ const app = {
     },
 
     async loadGenres() {
-        const data = await this.fetchData('/genre/movie/list');
-        this.genreFilter.innerHTML = '<option value="">All Genres</option>' + 
-            data.genres.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+        // Dynamically fetch genres based on current media type
+        const data = await this.fetchData(`/genre/${this.currentState.mediaType}/list`);
+        if (data && data.genres) {
+            this.genreFilter.innerHTML = '<option value="">All Genres</option>' + 
+                data.genres.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+        }
     },
 
-    async loadCategory(type) {
-        let endpoint = '/trending/movie/day';
-        if (type === 'top_rated') endpoint = '/movie/top_rated';
-        if (type === 'now_playing') endpoint = '/movie/now_playing';
+    async loadCategory(categoryType) {
+        const type = this.currentState.mediaType;
+        let endpoint = `/trending/${type}/day`; // default
+
+        if (categoryType === 'top_rated') endpoint = `/${type}/top_rated`;
+        // 'now_playing' is movies only. For TV, the equivalent is 'on_the_air'
+        if (categoryType === 'now_playing') {
+            endpoint = type === 'movie' ? '/movie/now_playing' : '/tv/on_the_air';
+        }
         
         const data = await this.fetchData(endpoint);
-        this.renderMovies(data.results);
+        if (data && data.results) this.renderMedia(data.results);
     },
 
     async applyFilters() {
-        const genre = this.genreFilter.value;
-        const year = this.yearFilter.value;
-        const rating = this.ratingFilter.value;
+        const { mediaType, genre, year, rating } = this.currentState;
+        this.currentState.genre = this.genreFilter.value;
+        this.currentState.year = this.yearFilter.value;
+        this.currentState.rating = this.ratingFilter.value;
         
-        const params = `&with_genres=${genre}&primary_release_year=${year}&vote_average.gte=${rating}`;
-        const data = await this.fetchData('/discover/movie', params);
-        this.renderMovies(data.results);
+        // TMDB uses 'first_air_date_year' for TV, and 'primary_release_year' for movies
+        const yearParam = mediaType === 'movie' 
+            ? `&primary_release_year=${this.currentState.year}` 
+            : `&first_air_date_year=${this.currentState.year}`;
+
+        const params = `&with_genres=${this.currentState.genre}${yearParam}&vote_average.gte=${this.currentState.rating}`;
+        const data = await this.fetchData(`/discover/${mediaType}`, params);
+        
+        if (data && data.results) this.renderMedia(data.results);
     },
 
     /**
      * UI RENDERING
      */
-    renderMovies(movies) {
+    renderMedia(items) {
         this.main.innerHTML = '';
-        if (movies.length === 0) {
-            this.main.innerHTML = '<h2>No movies found matching your criteria.</h2>';
+        if (!items || items.length === 0) {
+            this.main.innerHTML = '<h2>No results found matching your criteria.</h2>';
             return;
         }
 
-        movies.forEach(movie => {
-            const movieCard = this.createMovieCard(movie);
-            this.main.appendChild(movieCard);
+        items.forEach(item => {
+            const card = this.createMediaCard(item);
+            this.main.appendChild(card);
         });
     },
 
-    createMovieCard(movie) {
-        const { id, title, poster_path, vote_average } = movie;
+    createMediaCard(item) {
+        // Handle differences between Movie (title) and TV (name)
+        const title = item.title || item.name;
+        const id = item.id;
+        const { poster_path, vote_average } = item;
+        
         const card = document.createElement('div');
         card.classList.add('movie-card');
         
@@ -123,42 +152,118 @@ const app = {
                 <div class="movie-overlay">
                     <span class="rating ${this.getRatingClass(vote_average)}">${vote_average.toFixed(1)}</span>
                     <h3>${title}</h3>
-                    <button class="btn-details" onclick="app.showMovieDetails(${id})">View Details</button>
+                    <button class="btn-details" onclick="app.showDetails(${id}, '${this.currentState.mediaType}')">View Details</button>
                 </div>
             </div>
         `;
         return card;
     },
 
-    async showMovieDetails(id) {
-        const [details, credits, videos, recs] = await Promise.all([
-            this.fetchData(`/movie/${id}`),
-            this.fetchData(`/movie/${id}/credits`),
-            this.fetchData(`/movie/${id}/videos`),
-            this.fetchData(`/movie/${id}/recommendations`)
+    /**
+     * STREAMING PROVIDERS (NEW)
+     */
+    async getWatchProviders(id, type) {
+        const data = await this.fetchData(`/${type}/${id}/watch/providers`);
+        const usProviders = data?.results?.US; // Assuming US location for this example
+        
+        if (!usProviders || !usProviders.flatrate) return '';
+
+        return `
+            <div class="providers" style="margin: 20px 0;">
+                <h4 style="color: #a3a3a3; margin-bottom: 8px;">Stream on:</h4>
+                <div style="display: flex; gap: 10px;">
+                    ${usProviders.flatrate.map(provider => `
+                        <img src="${CONFIG.POSTER_PATH + provider.logo_path}" 
+                             alt="${provider.provider_name}" 
+                             title="${provider.provider_name}"
+                             style="width: 45px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * USER ACTIONS (NEW)
+     */
+    async toggleWatchlist(mediaId, mediaType) {
+        // *NOTE: In a real environment, these come from your authenticated user session*
+        const accountId = 'YOUR_ACCOUNT_ID'; 
+        const sessionId = 'YOUR_SESSION_ID'; 
+
+        if (accountId === 'YOUR_ACCOUNT_ID') {
+            alert("Authentication required! Please set up your TMDB Session ID in the code to use the Watchlist feature.");
+            return;
+        }
+
+        try {
+            const response = await fetch(`${CONFIG.BASE_URL}/account/${accountId}/watchlist?api_key=${CONFIG.API_KEY}&session_id=${sessionId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json;charset=utf-8' },
+                body: JSON.stringify({
+                    media_type: mediaType,
+                    media_id: mediaId,
+                    watchlist: true // hardcoded to 'add' for this example
+                })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                alert(`Successfully added to your list!`);
+            }
+        } catch (error) {
+            console.error('Error updating watchlist:', error);
+        }
+    },
+
+    /**
+     * MODAL & DETAILS
+     */
+    async showDetails(id, type) {
+        // Fetch all data concurrently
+        const [details, credits, videos, recs, providersHtml] = await Promise.all([
+            this.fetchData(`/${type}/${id}`),
+            this.fetchData(`/${type}/${id}/credits`),
+            this.fetchData(`/${type}/${id}/videos`),
+            this.fetchData(`/${type}/${id}/recommendations`),
+            this.getWatchProviders(id, type)
         ]);
 
+        const title = details.title || details.name;
+        const date = details.release_date || details.first_air_date;
         const trailer = videos.results.find(v => v.type === 'Trailer' && v.site === 'YouTube');
+        
+        // Handle Runtime vs Seasons
+        const durationHtml = type === 'movie' 
+            ? `<span class="badge">${details.runtime} min</span>`
+            : `<span class="badge">${details.number_of_seasons} Season(s)</span>`;
         
         this.modalBody.innerHTML = `
             <div class="modal-grid">
                 <div class="modal-header" style="background-image: url(${CONFIG.IMG_PATH + details.backdrop_path})">
                     <div class="header-content">
-                        <h1>${details.title}</h1>
+                        <h1>${title}</h1>
                         <p class="tagline">${details.tagline || ''}</p>
                     </div>
                 </div>
                 
                 <div class="modal-info">
                     <div class="meta">
-                        <span class="badge">${details.release_date.split('-')[0]}</span>
-                        <span class="badge">${details.runtime} min</span>
+                        <span class="badge">${date ? date.split('-')[0] : 'N/A'}</span>
+                        ${durationHtml}
                         <div class="genres">${details.genres.map(g => `<span>${g.name}</span>`).join('')}</div>
                     </div>
                     
                     <p class="overview">${details.overview}</p>
 
-                    <h3>Top Cast</h3>
+                    ${providersHtml}
+
+                    <div style="display: flex; gap: 15px;">
+                        ${trailer ? `<button class="btn-primary" onclick="app.playTrailer('${trailer.key}')">▶ Watch Trailer</button>` : ''}
+                        <button class="btn-primary" style="background: #333;" onclick="app.toggleWatchlist(${id}, '${type}')">+ My List</button>
+                    </div>
+
+                    <h3 style="margin-top: 30px;">Top Cast</h3>
                     <div class="cast-list">
                         ${credits.cast.slice(0, 8).map(person => `
                             <div class="cast-item">
@@ -168,13 +273,11 @@ const app = {
                             </div>
                         `).join('')}
                     </div>
-
-                    ${trailer ? `<button class="btn-primary" onclick="app.playTrailer('${trailer.key}')">▶ Watch Trailer</button>` : ''}
                     
-                    <h3>Recommended</h3>
+                    <h3 style="margin-top: 20px;">Recommended</h3>
                     <div class="horizontal-scroll">
                         ${recs.results.slice(0, 6).map(r => `
-                            <img class="rec-poster" src="${CONFIG.POSTER_PATH + r.poster_path}" onclick="app.showMovieDetails(${r.id})">
+                            <img class="rec-poster" src="${CONFIG.POSTER_PATH + r.poster_path}" onclick="app.showDetails(${r.id}, '${type}')">
                         `).join('')}
                     </div>
                 </div>
@@ -195,12 +298,13 @@ const app = {
         this.modalBody.innerHTML = `
             <div class="video-container">
                 <iframe width="100%" height="500px" src="https://www.youtube.com/embed/${key}?autoplay=1" frameborder="0" allowfullscreen></iframe>
-                <button class="btn-primary" onclick="app.init()">Back to Details</button>
+                <button class="btn-primary" style="margin-top:20px;" onclick="app.init()">Back to Details</button>
             </div>
         `;
     },
 
     getRatingClass(vote) {
+        if (!vote) return 'red';
         if (vote >= 7.5) return 'green';
         if (vote >= 5) return 'orange';
         return 'red';
@@ -217,8 +321,11 @@ const app = {
     handleSearch() {
         const query = this.search.value;
         if (query) {
-            this.fetchData('/search/movie', `&query=${encodeURIComponent(query)}`)
-                .then(data => this.renderMovies(data.results));
+            // Search dynamically based on current mediaType (movie or tv)
+            this.fetchData(`/search/${this.currentState.mediaType}`, `&query=${encodeURIComponent(query)}`)
+                .then(data => {
+                    if (data && data.results) this.renderMedia(data.results);
+                });
         }
     }
 };
