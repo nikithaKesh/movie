@@ -4,7 +4,7 @@
 const CONFIG = {
     API_KEY: '3fd2be6f0c70a2a598f084ddfb75487c', // Note: Move to .env/backend in production
     BASE_URL: 'https://api.themoviedb.org/3',
-    IMG_PATH: 'https://image.tmdb.org/p/w1280',
+    IMG_PATH: 'https://image.tmdb.org/t/p/w1280',
     POSTER_PATH: 'https://image.tmdb.org/p/w500',
     DEFAULT_POSTER: 'https://via.placeholder.com/500x750?text=No+Image'
 };
