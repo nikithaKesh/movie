@@ -4,19 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
-    <title>CineStream | Modern Movie Browser</title>
+    <title>CineStream | Modern Movie & TV Browser</title>
 </head>
 <body class="dark-theme">
     <header>
         <nav class="navbar">
             <h1 class="logo" onclick="app.init()">CINESTREAM</h1>
+            
+            <div class="media-toggle" style="display: flex; gap: 10px; background: rgba(255,255,255,0.1); padding: 5px; border-radius: 20px;">
+                <button id="btn-movie" class="toggle-btn active" onclick="switchMedia('movie')" style="padding: 5px 15px; border-radius: 15px; border: none; cursor: pointer; background: var(--accent); color: white; font-weight: bold;">Movies</button>
+                <button id="btn-tv" class="toggle-btn" onclick="switchMedia('tv')" style="padding: 5px 15px; border-radius: 15px; border: none; cursor: pointer; background: transparent; color: white; font-weight: bold;">TV Shows</button>
+            </div>
+
             <div class="nav-links">
                 <button onclick="app.loadCategory('trending')">Trending</button>
                 <button onclick="app.loadCategory('top_rated')">Top Rated</button>
-                <button onclick="app.loadCategory('now_playing')">Now Playing</button>
+                <button onclick="app.loadCategory('now_playing')">New & Hot</button>
             </div>
+            
             <form id="form">
-                <input type="text" id="search" class="search" placeholder="Search movies...">
+                <input type="text" id="search" class="search" placeholder="Search movies & TV...">
             </form>
         </nav>
         
@@ -27,11 +34,14 @@
                 <option value="2024">2024</option>
                 <option value="2023">2023</option>
                 <option value="2022">2022</option>
+                <option value="2021">2021</option>
+                <option value="2020">2020</option>
             </select>
             <select id="ratingFilter">
                 <option value="0">Min Rating (Any)</option>
                 <option value="8">8+ Stars</option>
                 <option value="7">7+ Stars</option>
+                <option value="6">6+ Stars</option>
                 <option value="5">5+ Stars</option>
             </select>
         </div>
@@ -46,6 +56,19 @@
         </div>
     </div>
 
+    <script>
+        function switchMedia(type) {
+            // Tell the main app to swap data
+            app.setMediaType(type);
+            
+            // Update the UI buttons
+            document.getElementById('btn-movie').style.background = type === 'movie' ? 'var(--accent)' : 'transparent';
+            document.getElementById('btn-tv').style.background = type === 'tv' ? 'var(--accent)' : 'transparent';
+            
+            // Clear the search bar
+            document.getElementById('search').value = '';
+        }
+    </script>
     <script src="app.js"></script>
 </body>
 </html>
