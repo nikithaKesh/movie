@@ -1,20 +1,51 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <link rel="stylesheet" href="style.css" />
-        <title>Movie App</title>
-    </head>
-    <body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>CineStream | Modern Movie Browser</title>
+</head>
+<body class="dark-theme">
     <header>
-        <form id="form">
-        <input type="text" id="search" class="search" placeholder="Search">
-        </form>
+        <nav class="navbar">
+            <h1 class="logo" onclick="app.init()">CINESTREAM</h1>
+            <div class="nav-links">
+                <button onclick="app.loadCategory('trending')">Trending</button>
+                <button onclick="app.loadCategory('top_rated')">Top Rated</button>
+                <button onclick="app.loadCategory('now_playing')">Now Playing</button>
+            </div>
+            <form id="form">
+                <input type="text" id="search" class="search" placeholder="Search movies...">
+            </form>
+        </nav>
+        
+        <div class="filters">
+            <select id="genreFilter"></select>
+            <select id="yearFilter">
+                <option value="">Year (All)</option>
+                <option value="2024">2024</option>
+                <option value="2023">2023</option>
+                <option value="2022">2022</option>
+            </select>
+            <select id="ratingFilter">
+                <option value="0">Min Rating (Any)</option>
+                <option value="8">8+ Stars</option>
+                <option value="7">7+ Stars</option>
+                <option value="5">5+ Stars</option>
+            </select>
+        </div>
     </header>
 
     <main id="main"></main>
 
-    <script src="script.js"></script>
-    </body>
+    <div id="modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
 </html>
