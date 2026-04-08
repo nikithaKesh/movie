@@ -1,13 +1,16 @@
-/* --- Root Variables & Reset --- */
+/* --- Global Variables & Theme --- */
 :root {
-    --bg-color: #141414;
-    --card-bg: #1f1f1f;
+    --bg-main: #141414;
+    --bg-secondary: #181818;
+    --card-hover: #2f2f2f;
     --text-color: #ffffff;
-    --accent-color: #e50914; /* Netflix Red */
+    --text-muted: #a3a3a3;
+    --accent: #e50914; /* Netflix Red */
     --success: #46d369;
     --warning: #ffad33;
     --danger: #e50914;
-    --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    --shadow: 0 8px 16px rgba(0,0,0,0.5);
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 * {
@@ -17,224 +20,232 @@
 }
 
 body {
-    background-color: var(--bg-color);
+    background-color: var(--bg-main);
     color: var(--text-color);
-    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    line-height: 1.6;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    line-height: 1.5;
     overflow-x: hidden;
 }
 
 /* --- Header & Navigation --- */
 header {
-    padding: 1rem 4%;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 100%);
+    background: linear-gradient(180deg, rgba(0,0,0,0.7) 10%, transparent);
+    padding: 1.5rem 4%;
     position: sticky;
     top: 0;
     z-index: 1000;
-    backdrop-filter: blur(5px);
+    backdrop-filter: blur(10px);
 }
 
 .navbar {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 1rem;
+    align-items: center;
+    gap: 20px;
 }
 
 .logo {
-    color: var(--accent-color);
-    font-size: 2rem;
-    cursor: pointer;
-    letter-spacing: 2px;
+    color: var(--accent);
+    font-size: 1.8rem;
     font-weight: 900;
+    letter-spacing: -1px;
+    cursor: pointer;
+    text-transform: uppercase;
 }
 
 .nav-links button {
-    background: none;
+    background: transparent;
     border: none;
-    color: #e5e5e5;
-    margin-right: 15px;
+    color: var(--text-color);
+    margin-right: 20px;
+    font-size: 0.9rem;
     cursor: pointer;
-    font-weight: 500;
-    transition: var(--transition);
+    transition: var(--transition-smooth);
 }
 
 .nav-links button:hover {
-    color: var(--text-color);
+    color: var(--text-muted);
 }
 
 .search {
-    background: rgba(0,0,0,0.5);
-    border: 1px solid #fff;
-    color: #fff;
-    padding: 0.5rem 1rem;
+    background: rgba(0,0,0,0.75);
+    border: 1px solid #333;
+    color: white;
+    padding: 8px 15px;
     border-radius: 4px;
+    outline: none;
+    transition: border 0.3s;
 }
 
-/* --- Filters --- */
+.search:focus {
+    border-color: #fff;
+}
+
+/* --- Advanced Filters Bar --- */
 .filters {
     display: flex;
-    gap: 10px;
-    margin-top: 1rem;
+    gap: 15px;
+    margin-top: 1.5rem;
 }
 
 .filters select {
     background: #000;
-    color: #fff;
+    color: white;
     border: 1px solid #333;
-    padding: 5px 10px;
+    padding: 6px 12px;
     border-radius: 4px;
+    cursor: pointer;
 }
 
-/* --- Movie Grid --- */
+/* --- Main Movie Grid --- */
 #main {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 20px;
+    gap: 25px;
     padding: 2rem 4%;
+    min-height: 80vh;
 }
 
+/* --- Movie Card Styling --- */
 .movie-card {
-    position: relative;
+    background-color: var(--bg-secondary);
     border-radius: 8px;
     overflow: hidden;
-    background: var(--card-bg);
+    position: relative;
     cursor: pointer;
-    transition: var(--transition);
+    transition: var(--transition-smooth);
+    box-shadow: var(--shadow);
 }
 
 .movie-card:hover {
-    transform: scale(1.05);
+    transform: scale(1.08);
     z-index: 10;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.5);
 }
 
 .card-inner img {
     width: 100%;
-    display: block;
     aspect-ratio: 2/3;
     object-fit: cover;
+    display: block;
 }
 
 .movie-overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(to top, rgba(0,0,0,0.9) 10%, transparent 100%);
+    background: linear-gradient(0deg, rgba(0,0,0,0.9) 20%, transparent 100%);
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
     padding: 15px;
     opacity: 0;
-    transition: var(--transition);
+    transition: opacity 0.3s ease;
 }
 
 .movie-card:hover .movie-overlay {
     opacity: 1;
 }
 
+.movie-overlay h3 {
+    font-size: 1rem;
+    margin-bottom: 10px;
+}
+
 .rating {
     position: absolute;
     top: 10px;
     right: 10px;
-    padding: 5px 8px;
-    border-radius: 4px;
     font-weight: bold;
-    background: rgba(0,0,0,0.8);
+    background: rgba(0,0,0,0.7);
+    padding: 4px 8px;
+    border-radius: 4px;
 }
 
 .rating.green { color: var(--success); }
 .rating.orange { color: var(--warning); }
 .rating.red { color: var(--danger); }
 
-/* --- Modal System --- */
+/* --- Modal & Interactive Elements --- */
 .modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0,0,0,0.85);
+    background: rgba(0,0,0,0.9);
     z-index: 2000;
     display: flex;
     justify-content: center;
-    align-items: center;
-    backdrop-filter: blur(10px);
+    align-items: flex-start; /* Better for scrolling */
+    padding-top: 50px;
+    overflow-y: auto;
 }
 
 .modal-content {
-    background: var(--bg-color);
+    background: var(--bg-main);
     width: 90%;
-    max-width: 900px;
-    max-height: 90vh;
+    max-width: 850px;
     border-radius: 12px;
     position: relative;
-    overflow-y: auto;
-    border: 1px solid #333;
+    box-shadow: 0 0 50px rgba(0,0,0,1);
+    margin-bottom: 50px;
 }
 
 .close-modal {
     position: absolute;
-    right: 20px;
     top: 20px;
-    font-size: 2rem;
-    color: white;
+    right: 25px;
+    font-size: 2.5rem;
+    color: #fff;
     cursor: pointer;
     z-index: 100;
+    text-shadow: 0 0 10px rgba(0,0,0,0.5);
 }
 
 .modal-header {
-    height: 400px;
+    height: 450px;
     background-size: cover;
-    background-position: center;
+    background-position: center top;
     position: relative;
 }
 
 .header-content {
     position: absolute;
     bottom: 0;
-    padding: 40px;
-    background: linear-gradient(transparent, var(--bg-color));
     width: 100%;
+    padding: 40px;
+    background: linear-gradient(0deg, var(--bg-main) 0%, transparent 100%);
 }
 
 .modal-info {
     padding: 0 40px 40px;
 }
 
+/* --- Layout inside Modal --- */
 .meta {
     display: flex;
     align-items: center;
     gap: 15px;
-    margin-bottom: 20px;
+    margin: 15px 0;
 }
 
 .badge {
-    background: #333;
-    padding: 2px 8px;
+    border: 1px solid #555;
+    padding: 2px 10px;
     border-radius: 4px;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
 }
 
-.genres span {
-    margin-right: 10px;
-    color: var(--accent-color);
-    font-weight: bold;
-}
-
-/* --- Cast & Recommendations --- */
 .cast-list {
     display: flex;
-    gap: 15px;
+    gap: 20px;
     overflow-x: auto;
-    padding: 15px 0;
-    scrollbar-width: thin;
+    padding: 10px 0;
+    margin-bottom: 30px;
 }
 
 .cast-item {
     min-width: 100px;
     text-align: center;
-    font-size: 0.8rem;
 }
 
 .cast-item img {
@@ -242,46 +253,67 @@ header {
     height: 80px;
     border-radius: 50%;
     object-fit: cover;
-    margin-bottom: 5px;
+    margin-bottom: 8px;
+    border: 2px solid #333;
 }
 
 .horizontal-scroll {
     display: flex;
-    gap: 10px;
+    gap: 12px;
     overflow-x: auto;
     padding: 10px 0;
 }
 
 .rec-poster {
-    height: 150px;
-    border-radius: 4px;
-    cursor: pointer;
+    height: 180px;
+    border-radius: 6px;
+    transition: transform 0.2s;
+}
+
+.rec-poster:hover {
+    transform: scale(1.05);
 }
 
 /* --- Utilities --- */
 .hidden { display: none !important; }
 
 .btn-primary {
-    background: var(--accent-color);
+    background: var(--accent);
     color: white;
     border: none;
-    padding: 12px 24px;
+    padding: 12px 30px;
     border-radius: 4px;
+    font-size: 1.1rem;
     font-weight: bold;
     cursor: pointer;
-    margin: 20px 0;
-    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .btn-primary:hover {
-    background: #b20710;
+    background: #f40612;
 }
 
+/* Video Responsive Container */
+.video-container {
+    position: relative;
+    padding-bottom: 56.25%; /* 16:9 */
+    height: 0;
+}
+.video-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+/* Custom Scrollbar for Cast/Recs */
 ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    height: 6px;
+    width: 6px;
 }
-
 ::-webkit-scrollbar-thumb {
     background: #333;
     border-radius: 10px;
